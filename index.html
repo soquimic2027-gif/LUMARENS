@@ -311,7 +311,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 <div id="alert-bar">⚠ &nbsp;<span id="alert-msg"></span><button onclick="closeAlert()" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:17px">✕</button></div>
 
 <!-- ══ SETUP ══ -->
-<div id="s-setup" class="screen on">
+<div id="s-setup" class="screen">
   <div class="setup-logo">
     <span class="ico">🛰️</span>
     <h1>FLEET<em>TRACK</em> GPS</h1>
@@ -401,7 +401,7 @@ on conflict (email) do nothing;</div>
 </div>
 
 <!-- ══ LOGIN ══ -->
-<div id="s-login" class="screen">
+<div id="s-login" class="screen on">
   <div class="setup-logo">
     <span class="ico">🛰️</span>
     <h1>FLEET<em>TRACK</em></h1>
@@ -441,7 +441,7 @@ on conflict (email) do nothing;</div>
           <div class="pm-role" id="pm-role">—</div>
         </div>
         <div class="pm-item" onclick="logout()">🚪 &nbsp;Cerrar sesión</div>
-        <div class="pm-item" onclick="showScreen('s-setup')">⚙️ &nbsp;Reconfigurar</div>
+
       </div>
     </div>
   </div>
@@ -811,15 +811,22 @@ function logout(){
   toast('👋 Sesión cerrada','Hasta pronto','info');
 }
 
+// ── CREDENCIALES HARDCODEADAS ──
+const SB_URL = 'https://hbaqfxncylnvpmexrnin.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiYXFmeG5jeWxudnBtZXhybmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMDY0NDEsImV4cCI6MjA5MDU4MjQ0MX0.7Qmbg58cBbi0Ocb5Wtj414L-MYppWL3Hb5f2qRZlBFo';
+
 function initSB(url,key){
   try{
     const {createClient}=window.supabase;
-    sb=createClient(url,key);
+    sb=createClient(url||SB_URL, key||SB_KEY);
     return true;
   }catch{return false}
 }
 
-function getSavedCfg(){try{return JSON.parse(localStorage.getItem('ft_sb'))}catch{return null}}
+function getSavedCfg(){
+  // Always use hardcoded credentials
+  return { url: SB_URL, key: SB_KEY };
+}
 
 /* ═══════════════════════════════════════════════════════
    FLEET DATA
@@ -1721,17 +1728,15 @@ function clearFields(ids){ids.forEach(id=>{if($(id))$(id).value=''})}
    AUTO-INIT
 ═══════════════════════════════════════════════════════ */
 window.addEventListener('load',()=>{
-  // Try to restore session
-  const savedUser=localStorage.getItem('ft_user');
-  const cfg=getSavedCfg();
-  if(savedUser&&cfg){
+  // Siempre conectar con credenciales hardcodeadas
+  initSB(SB_URL, SB_KEY);
+  const savedUser = localStorage.getItem('ft_user');
+  if(savedUser){
     try{
-      me=JSON.parse(savedUser);
-      if(!initSB(cfg.url,cfg.key)){showScreen('s-login');return}
-      afterLogin();
-    }catch{showScreen('s-login')}
-  }else if(cfg){
-    initSB(cfg.url,cfg.key);
-    showScreen('s-login');
+      me = JSON.parse(savedUser);
+      afterLogin(); return;
+    }catch{ localStorage.removeItem('ft_user'); }
   }
+  // Ir directo al login, saltando setup
+  showScreen('s-login');
   //
