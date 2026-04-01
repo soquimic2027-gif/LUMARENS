@@ -213,16 +213,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 
 /* Suggest input */
 .sug-wrap{position:relative;margin-bottom:8px}
-.sug-wrap input{width:100%;background:var(--bg);border:1px solid var(--borderhi);border-radius:8px;padding:9px 11px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;outline:none}
-.sug-wrap input:focus{border-color:var(--blue)}
-.sug-list{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--borderhi);border-radius:8px;z-index:200;max-height:180px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.sug-wrap input{width:100%;background:var(--bg);border:1px solid var(--borderhi);border-radius:8px;padding:9px 36px 9px 36px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
+.sug-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(61,127,255,.14)}
+.sug-wrap .sug-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;opacity:.5}
+.sug-wrap .sug-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;cursor:pointer;opacity:.4;background:none;border:none;color:var(--text);display:none;padding:2px}
+.sug-wrap .sug-clear.vis{display:block}
+.sug-wrap .sug-clear:hover{opacity:1}
+.sug-wrap .sug-spinner{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;width:14px;height:14px;border:2px solid var(--borderhi);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+.sug-wrap .sug-spinner.vis{display:block}
+.sug-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--borderhi);border-radius:10px;z-index:200;max-height:260px;overflow-y:auto;display:none;box-shadow:0 12px 32px rgba(0,0,0,.6)}
 .sug-list::-webkit-scrollbar{width:3px}
 .sug-list::-webkit-scrollbar-thumb{background:var(--borderhi)}
-.sug-item{padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)}
+.sug-header{padding:6px 12px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--lo);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.sug-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;transition:background .12s}
 .sug-item:last-child{border:none}
-.sug-item:hover{background:var(--hover)}
-.sug-main{color:var(--text);font-weight:500}
-.sug-sub{color:var(--mid);font-size:10px;margin-top:2px}
+.sug-item:hover,.sug-item.focused{background:var(--hover)}
+.sug-item-ico{width:28px;height:28px;border-radius:7px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px}
+.sug-item-body{flex:1;min-width:0}
+.sug-main{color:var(--text);font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-main mark{background:transparent;color:var(--blue);font-weight:700}
+.sug-sub{color:var(--mid);font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-no-results{padding:14px 12px;font-size:11px;color:var(--lo);text-align:center}
 
 /* Stops */
 .stops{display:flex;flex-direction:column}
@@ -373,7 +385,7 @@ alter publication supabase_realtime add table ft_fleet;
 
 -- Admin por defecto (cambiar contraseña después)
 insert into ft_users (name,email,password,role)
-values ('Administrador','admin@fleettrack.pe','admin123','admin')
+values ('Administrador','<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a0c1c4cdc9cee0c6ccc5c5d4d4d2c1c3cb8ed0c5">[email&#160;protected]</a>','admin123','admin')
 on conflict (email) do nothing;</div>
     <button class="btn btn-sec btn-sm" onclick="copySQL()">📋 Copiar SQL</button>
   </div>
@@ -571,20 +583,31 @@ on conflict (email) do nothing;</div>
 
       <div class="dv-route-card" id="dv-setup-card">
         <div class="dv-rt-ttl">🛣 CONFIGURAR SERVICIO</div>
-        <div class="f"><label>Ruta / Nombre del servicio</label>
-          <div class="sug-wrap">
-            <input id="dv-route" placeholder="Miraflores → Centro de Lima" oninput="showSuggestions(this.value,'dv-route','sug-route')" autocomplete="off"/>
+        <div class="f"><label>Nombre / Descripción de la ruta</label>
+          <div class="sug-wrap" id="wrap-route">
+            <span class="sug-icon">🛣</span>
+            <input id="dv-route" placeholder="Ej: Miraflores → Centro de Lima" oninput="acRoute(this)" onkeydown="acKeydown(event,'sug-route')" autocomplete="off"/>
+            <button class="sug-clear" id="clr-route" onclick="clearField('dv-route','sug-route','clr-route')">✕</button>
+            <div class="sug-spinner" id="spin-route"></div>
             <div class="sug-list" id="sug-route"></div>
           </div>
         </div>
         <div class="f"><label>Punto de origen</label>
-          <div class="sug-wrap">
-            <input id="dv-origin" placeholder="Terminal Miraflores" autocomplete="off"/>
+          <div class="sug-wrap" id="wrap-origin">
+            <span class="sug-icon">🟢</span>
+            <input id="dv-origin" placeholder="Busca tu punto de partida…" oninput="acPlace(this,'sug-origin','spin-origin','clr-origin')" onkeydown="acKeydown(event,'sug-origin')" autocomplete="off"/>
+            <button class="sug-clear" id="clr-origin" onclick="clearField('dv-origin','sug-origin','clr-origin')">✕</button>
+            <div class="sug-spinner" id="spin-origin"></div>
+            <div class="sug-list" id="sug-origin"></div>
           </div>
         </div>
         <div class="f"><label>Destino</label>
-          <div class="sug-wrap">
-            <input id="dv-dest" placeholder="Plaza Mayor — Centro de Lima" autocomplete="off"/>
+          <div class="sug-wrap" id="wrap-dest">
+            <span class="sug-icon">🔴</span>
+            <input id="dv-dest" placeholder="Busca tu destino..." oninput="acPlace(this,'sug-dest','spin-dest','clr-dest')" onkeydown="acKeydown(event,'sug-dest')" autocomplete="off"/>
+            <button class="sug-clear" id="clr-dest" onclick="clearField('dv-dest','sug-dest','clr-dest')">✕</button>
+            <div class="sug-spinner" id="spin-dest"></div>
+            <div class="sug-list" id="sug-dest"></div>
           </div>
         </div>
         <div style="height:6px"></div>
@@ -664,7 +687,7 @@ on conflict (email) do nothing;</div>
 <!-- TOAST -->
 <div id="toast"><div class="toast-t" id="toast-t"></div><div id="toast-b"></div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 'use strict';
 /* ═══════════════════════════════════════════════════════
@@ -1259,29 +1282,188 @@ function renderDvStops(origin,dest){
 }
 
 /* ═══════════════════════════════════════════════════════
-   ROUTE SUGGESTIONS
+   AUTOCOMPLETE — Geocoding real (Nominatim OSM) + rutas
 ═══════════════════════════════════════════════════════ */
-function showSuggestions(val,inputId,listId){
-  const list=$(listId);
-  if(!val||val.length<2){list.style.display='none';return}
-  const combined=[...LIMA_ROUTES,...allRoutes];
-  const matches=combined.filter(r=>r.name.toLowerCase().includes(val.toLowerCase())).slice(0,8);
-  if(!matches.length){list.style.display='none';return}
-  list.innerHTML=matches.map(r=>`
-    <div class="sug-item" onclick="fillRoute(${JSON.stringify(r.name)},${JSON.stringify(r.origin_name||'')},${JSON.stringify(r.dest_name||'')})">
-      <div class="sug-main">${r.name}</div>
-      <div class="sug-sub">${r.origin_name||''} → ${r.dest_name||''}</div>
-    </div>`).join('');
-  list.style.display='block';
+const acTimers = {};
+const placeCoords = {}; // store selected place coords
+let acFocusIdx = -1;
+
+// Route name field: searches predefined + custom routes
+function acRoute(input) {
+  const val = input.value.trim();
+  const listId = 'sug-route', clrId = 'clr-route';
+  $(clrId).classList.toggle('vis', val.length > 0);
+  if (!val || val.length < 1) { hideSug(listId); return; }
+  const combined = [...LIMA_ROUTES, ...allRoutes];
+  const q = val.toLowerCase();
+  const matches = combined.filter(r => r.name.toLowerCase().includes(q) ||
+    (r.origin_name||'').toLowerCase().includes(q) ||
+    (r.dest_name||'').toLowerCase().includes(q)).slice(0, 10);
+  const list = $(listId);
+  if (!matches.length) { hideSug(listId); return; }
+  list.innerHTML =
+    '<div class="sug-header">🛣 &nbsp;RUTAS DISPONIBLES</div>' +
+    matches.map((r,i) => {
+      const hl = r.name.replace(new RegExp(`(${escRe(val)})`, 'gi'), '<mark>$1</mark>');
+      const isCustom = allRoutes.includes(r);
+      return `<div class="sug-item" data-idx="${i}" onmousedown="pickRoute(event,${JSON.stringify(r.name)},${JSON.stringify(r.origin_name||'')},${JSON.stringify(r.dest_name||'')})">
+        <div class="sug-item-ico">${isCustom ? '⭐' : '🚌'}</div>
+        <div class="sug-item-body">
+          <div class="sug-main">${hl}</div>
+          <div class="sug-sub">${r.origin_name||'—'} → ${r.dest_name||'—'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  list.style.display = 'block';
+  acFocusIdx = -1;
 }
 
-function fillRoute(name,origin,dest){
-  $('dv-route').value=name;$('dv-origin').value=origin;$('dv-dest').value=dest;
-  document.querySelectorAll('.sug-list').forEach(l=>l.style.display='none');
+// Place field: geocoding via Nominatim (real places Peru)
+function acPlace(input, listId, spinId, clrId) {
+  const val = input.value.trim();
+  $(clrId).classList.toggle('vis', val.length > 0);
+  hideSug(listId);
+  if (!val || val.length < 2) return;
+  clearTimeout(acTimers[listId]);
+  acTimers[listId] = setTimeout(() => geocodeSearch(val, input.id, listId, spinId), 380);
 }
 
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.sug-wrap'))document.querySelectorAll('.sug-list').forEach(l=>l.style.display='none');
+async function geocodeSearch(query, inputId, listId, spinId) {
+  const list = $(listId), spin = $(spinId);
+  spin.classList.add('vis');
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', Perú')}&countrycodes=pe&format=json&limit=8&addressdetails=1&accept-language=es`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+    const data = await res.json();
+    spin.classList.remove('vis');
+    if (!data.length) {
+      list.innerHTML = `<div class="sug-no-results">🔍 Sin resultados para "<b>${query}</b>"</div>`;
+      list.style.display = 'block'; return;
+    }
+    list.innerHTML =
+      '<div class="sug-header">📍 &nbsp;LUGARES EN PERÚ</div>' +
+      data.map((p, i) => {
+        const name = p.namedetails?.name || p.display_name.split(',')[0];
+        const addr = fmtAddr(p.address);
+        const ico = placeIcon(p.type, p.class);
+        return `<div class="sug-item" data-idx="${i}" onmousedown="pickPlace(event,'${inputId}',${JSON.stringify(name)},${JSON.stringify(p.display_name)},${p.lat},${p.lon})">
+          <div class="sug-item-ico">${ico}</div>
+          <div class="sug-item-body">
+            <div class="sug-main">${hlText(name, query)}</div>
+            <div class="sug-sub">${addr}</div>
+          </div>
+        </div>`;
+      }).join('');
+    list.style.display = 'block';
+    acFocusIdx = -1;
+  } catch(e) {
+    spin.classList.remove('vis');
+    list.innerHTML = '<div class="sug-no-results">⚠️ Sin conexión. Escribe el lugar manualmente.</div>';
+    list.style.display = 'block';
+  }
+}
+
+function pickRoute(e, name, origin, dest) {
+  e.preventDefault();
+  $('dv-route').value = name;
+  if (origin && !$('dv-origin').value) $('dv-origin').value = origin;
+  if (dest   && !$('dv-dest').value)   $('dv-dest').value   = dest;
+  $('clr-route').classList.add('vis');
+  $('clr-origin').classList.toggle('vis', !!$('dv-origin').value);
+  $('clr-dest').classList.toggle('vis',   !!$('dv-dest').value);
+  hideAllSug();
+}
+
+function pickPlace(e, inputId, name, fullAddr, lat, lon) {
+  e.preventDefault();
+  $(inputId).value = name;
+  placeCoords[inputId] = { lat: parseFloat(lat), lng: parseFloat(lon), addr: fullAddr };
+  // If both origin and dest selected, auto-name the route
+  autoNameRoute();
+  const clrMap = { 'dv-origin': 'clr-origin', 'dv-dest': 'clr-dest' };
+  if (clrMap[inputId]) $(clrMap[inputId]).classList.add('vis');
+  hideAllSug();
+}
+
+function autoNameRoute() {
+  const o = $('dv-origin').value, d = $('dv-dest').value;
+  if (o && d && !$('dv-route').value) {
+    $('dv-route').value = `${o} → ${d}`;
+    $('clr-route').classList.add('vis');
+  }
+}
+
+function clearField(inputId, listId, clrId) {
+  $(inputId).value = '';
+  delete placeCoords[inputId];
+  $(clrId).classList.remove('vis');
+  hideSug(listId);
+}
+
+// Keyboard navigation (↑↓ Enter Esc)
+function acKeydown(e, listId) {
+  const list = $(listId);
+  const items = list.querySelectorAll('.sug-item');
+  if (!items.length || list.style.display === 'none') return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acFocusIdx = Math.min(acFocusIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acFocusIdx = Math.max(acFocusIdx - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (acFocusIdx >= 0) items[acFocusIdx].dispatchEvent(new MouseEvent('mousedown'));
+    return;
+  } else if (e.key === 'Escape') {
+    hideSug(listId); return;
+  } else { return; }
+  items.forEach((it, i) => it.classList.toggle('focused', i === acFocusIdx));
+  if (acFocusIdx >= 0) items[acFocusIdx].scrollIntoView({ block: 'nearest' });
+}
+
+function hideSug(id) { const el=$(id); if(el) el.style.display='none'; }
+function hideAllSug() { document.querySelectorAll('.sug-list').forEach(l=>l.style.display='none'); }
+
+// Format address nicely
+function fmtAddr(addr) {
+  if (!addr) return '';
+  const parts = [];
+  if (addr.road || addr.pedestrian) parts.push(addr.road || addr.pedestrian);
+  if (addr.suburb || addr.neighbourhood) parts.push(addr.suburb || addr.neighbourhood);
+  if (addr.city || addr.town || addr.municipality) parts.push(addr.city || addr.town || addr.municipality);
+  if (addr.state) parts.push(addr.state);
+  return parts.slice(0, 3).join(', ') || '';
+}
+
+// Icon based on place type
+function placeIcon(type, cls) {
+  const map = {
+    hospital: '🏥', school: '🏫', university: '🎓', restaurant: '🍽',
+    cafe: '☕', bank: '🏦', pharmacy: '💊', supermarket: '🛒',
+    bus_station: '🚌', fuel: '⛽', hotel: '🏨', mall: '🏬',
+    park: '🌳', museum: '🏛', church: '⛪', airport: '✈️',
+    police: '👮', stadium: '🏟', beach: '🏖', market: '🏪',
+  };
+  if (map[type]) return map[type];
+  if (cls === 'highway') return '🛣';
+  if (cls === 'amenity') return '📍';
+  if (cls === 'shop') return '🏪';
+  if (cls === 'tourism') return '🗺';
+  if (cls === 'natural') return '🌿';
+  return '📍';
+}
+
+// Highlight matching text
+function hlText(text, query) {
+  if (!query) return text;
+  return text.replace(new RegExp(`(${escRe(query)})`, 'gi'), '<mark>$1</mark>');
+}
+
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sug-wrap')) hideAllSug();
 });
 
 /* ═══════════════════════════════════════════════════════
@@ -1552,12 +1734,4 @@ window.addEventListener('load',()=>{
     initSB(cfg.url,cfg.key);
     showScreen('s-login');
   }
-  // Pre-fill login if returning
-  if(me){$('login-email').value=me.email}
-});
-
-// Responsive map resize
-new ResizeObserver(()=>{if($('s-app').classList.contains('on'))resizeMap()}).observe($('map-center'));
-</script>
-</body>
-</html>
+  //
